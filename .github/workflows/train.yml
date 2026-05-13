@@ -22,6 +22,7 @@ jobs:
         run: |
           pip install numpy==1.24.3
           pip install tensorflow==2.15.0
+          pip install tensorflow_decision_forests
           pip install tensorflowjs==4.15.0 --no-deps
           pip install supabase requests beautifulsoup4
 
