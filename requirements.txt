@@ -1,8 +1,6 @@
-streamlit
-tensorflow-cpu
-tensorflowjs
+tensorflow==2.15.0
+tensorflowjs==4.15.0
 supabase
-numpy
+numpy==1.26.4
 requests
 beautifulsoup4
-pandas
