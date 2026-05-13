@@ -8,7 +8,6 @@ from supabase import create_client
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflowjs as tfjs
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -138,17 +137,56 @@ def upload_to_supabase(local_path, storage_path, content_type):
 # ─── Convert and upload TF.js ─────────────────────────────────────────────────
 def convert_and_upload_tfjs(model):
     print("Converting to TF.js format...")
+    import subprocess
+    import json
+
     with tempfile.TemporaryDirectory() as tmpdir:
+        # Save model as SavedModel format first
+        saved_model_dir = os.path.join(tmpdir, 'saved_model')
         tfjs_dir = os.path.join(tmpdir, 'tfjs_model')
         os.makedirs(tfjs_dir)
-        tfjs.converters.save_keras_model(model, tfjs_dir)
+
+        # Save as SavedModel
+        model.save(saved_model_dir)
+        print(f"Model saved to {saved_model_dir}")
+
+        # Convert using tensorflowjs_converter command line
+        result = subprocess.run([
+            'tensorflowjs_converter',
+            '--input_format=tf_saved_model',
+            '--output_format=tfjs_graph_model',
+            saved_model_dir,
+            tfjs_dir
+        ], capture_output=True, text=True)
+
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+
+        if result.returncode != 0:
+            print("Conversion failed, trying keras format...")
+            # Try saving as h5 and converting
+            h5_path = os.path.join(tmpdir, 'model.h5')
+            model.save(h5_path)
+            result2 = subprocess.run([
+                'tensorflowjs_converter',
+                '--input_format=keras',
+                h5_path,
+                tfjs_dir
+            ], capture_output=True, text=True)
+            print("STDOUT:", result2.stdout)
+            print("STDERR:", result2.stderr)
+
         files = os.listdir(tfjs_dir)
         print(f"Files created: {files}")
+
         for fname in files:
             fpath = os.path.join(tfjs_dir, fname)
-            content_type = 'application/json' if fname.endswith('.json') else 'application/octet-stream'
-            upload_to_supabase(fpath, f'tfjs/{fname}', content_type)
+            if os.path.isfile(fpath):
+                content_type = 'application/json' if fname.endswith('.json') else 'application/octet-stream'
+                upload_to_supabase(fpath, f'tfjs/{fname}', content_type)
+
     print("TF.js model uploaded to Supabase!")
+
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
