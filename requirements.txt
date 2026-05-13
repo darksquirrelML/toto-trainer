@@ -1,5 +1,5 @@
 streamlit
-tensorflow
+tensorflow-cpu
 tensorflowjs
 supabase
 numpy
