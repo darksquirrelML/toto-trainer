@@ -1,6 +1,6 @@
 tensorflow==2.15.0
-tensorflowjs==4.15.0
-supabase
+tensorflowjs==3.18.0
 numpy==1.26.4
+supabase
 requests
 beautifulsoup4
