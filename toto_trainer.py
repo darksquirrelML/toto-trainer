@@ -394,23 +394,15 @@ if __name__ == "__main__":
              
             # Step 4 - Convert & Upload TF.js
             convert_and_upload_tfjs(model)
-    
-            # Step 5 - Predict & Save
-            numbers, probs = predict_and_save(model, draws)
-    
-            # Step 6 - Done!
+
+            # Step 5 - Done! (no prediction here)
             update_status(
                 "complete",
                 100,
-                message=f"✅ Done! Predicted: {numbers}"
+                message=f"✅ Training done! Tap Predict to get numbers."
             )
-            # Reset predict_only flag
-            supabase.table("training_config").upsert({
-                "id": 1,
-                "predict_only": False
-            }).execute()
-            print("=== All Done! ===")
-    
+            print("=== Training Done! ===")
+   
     except Exception as e:
         print(f"Error: {e}")
         update_status("error", 0, message=f"Error: {str(e)}")    
