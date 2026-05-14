@@ -95,7 +95,8 @@ def predict_and_save(model, draws):
     numbers = [x[0] for x in top7]
     probabilities = [round(x[1], 4) for x in top7]
 
-    supabase.table("predictions").insert({
+    supabase.table("predictions").upsert({
+        "id": 1,
         "numbers": json.dumps(numbers),
         "probabilities": json.dumps(probabilities),
         "draw_date": draws[-1]['draw_date'],
