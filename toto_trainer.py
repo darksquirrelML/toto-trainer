@@ -336,32 +336,53 @@ if __name__ == "__main__":
     TRAIN_RATIO = settings.get("train_ratio", 0.85)
     WINDOW_SIZE = settings.get("window_size", 15)
     NUM_DRAWS = settings.get("num_draws", 1000)
-    print(f"Settings: epochs={TRAIN_EPOCHS} batch={BATCH_SIZE} window={WINDOW_SIZE}")
+    PREDICT_ONLY = settings.get("predict_only", False)
+    print(f"Settings: epochs={TRAIN_EPOCHS} batch={BATCH_SIZE} window={WINDOW_SIZE} predict_only={PREDICT_ONLY}")
 
     try:
-        # Step 1 - Scrape
-        draws = scrape_toto_latest()
-        if draws:
-            update_supabase(draws)
-
-        # Step 2 - Load & Train
-        draws = load_draws()
-        model, draws = train_model(draws)
-
-        # Step 3 - Convert & Upload TF.js
-        convert_and_upload_tfjs(model)
-
-        # Step 4 - Predict & Save
-        numbers, probs = predict_and_save(model, draws)
-
-        # Step 5 - Done!
-        update_status(
-            "complete",
-            100,
-            message=f"✅ Done! Predicted: {numbers}"
-        )
-        print("=== All Done! ===")
-
+        if PREDICT_ONLY:
+            # Only predict using existing model
+            update_status("predicting", 50, message="Loading draws for prediction...")
+            draws = load_draws()
+    
+            # Load existing model
+            from tensorflow import keras
+            model = keras.models.load_model('lstm_model.h5') if os.path.exists('lstm_model.h5') else None
+    
+            if model is None:
+                update_status("error", 0, message="No trained model found. Please train first!")
+            else:
+                numbers, probs = predict_and_save(model, draws)
+                update_status("complete", 100, message=f"✅ Predicted: {numbers}")
+                print("=== Prediction Done! ===")
+        else:
+            # Full pipeline: scrape + train + predict
+            # Step 1 - Scrape
+            draws = scrape_toto_latest()
+            if draws:
+                update_supabase(draws)
+    
+            # Step 2 - Load & Train
+            draws = load_draws()
+            model, draws = train_model(draws)
+    
+            # Step 3 - Save model locally for predict_only use
+            model.save('lstm_model.h5')
+    
+            # Step 4 - Convert & Upload TF.js
+            convert_and_upload_tfjs(model)
+    
+            # Step 5 - Predict & Save
+            numbers, probs = predict_and_save(model, draws)
+    
+            # Step 6 - Done!
+            update_status(
+                "complete",
+                100,
+                message=f"✅ Done! Predicted: {numbers}"
+            )
+            print("=== All Done! ===")
+    
     except Exception as e:
         print(f"Error: {e}")
-        update_status("error", 0, message=f"Error: {str(e)}")
+        update_status("error", 0, message=f"Error: {str(e)}")    
