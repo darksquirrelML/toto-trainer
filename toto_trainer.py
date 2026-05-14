@@ -17,12 +17,28 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 MODEL_BUCKET = "models"
-TRAIN_EPOCHS = 100
-BATCH_SIZE = 64
-TRAIN_RATIO = 0.85
-WINDOW_SIZE = 15
-NUM_DRAWS = 1000
 SEED = 42
+
+# ─── Load settings from Supabase ─────────────────────────────────────────────
+def load_settings():
+    try:
+        response = supabase.table("training_config") \
+            .select("*") \
+            .eq("id", 1) \
+            .single() \
+            .execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        print(f"Settings load error: {e}")
+    # Default settings
+    return {
+        "epochs": 100,
+        "batch_size": 64,
+        "train_ratio": 0.85,
+        "window_size": 15,
+        "num_draws": 1000
+    }
 
 # ─── Update training status in Supabase ───────────────────────────────────────
 def update_status(status, progress=0, epoch=0, total=0, loss=0, val_loss=0, message=''):
@@ -312,6 +328,15 @@ def predict_and_save(model, draws):
 if __name__ == "__main__":
     print("=== TOTO Auto Trainer Started ===")
     update_status("starting", 0, message="Starting TOTO Auto Trainer...")
+
+    # Load settings from Supabase
+    settings = load_settings()
+    TRAIN_EPOCHS = settings.get("epochs", 100)
+    BATCH_SIZE = settings.get("batch_size", 64)
+    TRAIN_RATIO = settings.get("train_ratio", 0.85)
+    WINDOW_SIZE = settings.get("window_size", 15)
+    NUM_DRAWS = settings.get("num_draws", 1000)
+    print(f"Settings: epochs={TRAIN_EPOCHS} batch={BATCH_SIZE} window={WINDOW_SIZE}")
 
     try:
         # Step 1 - Scrape
