@@ -345,9 +345,18 @@ if __name__ == "__main__":
             update_status("predicting", 50, message="Loading draws for prediction...")
             draws = load_draws()
     
-            # Load existing model
+            # Download model from Supabase Storage
             from tensorflow import keras
-            model = keras.models.load_model('lstm_model.h5') if os.path.exists('lstm_model.h5') else None
+            try:
+                update_status("predicting", 30, message="Downloading model from Supabase...")
+                model_data = supabase.storage.from_(MODEL_BUCKET).download('lstm_model.h5')
+                with open('lstm_model.h5', 'wb') as f:
+                    f.write(model_data)
+                model = keras.models.load_model('lstm_model.h5')
+                print("Model downloaded and loaded!")
+            except Exception as e:
+                print(f"Model download error: {e}")
+                model = None
     
             if model is None:
                 update_status("error", 0, message="No trained model found. Please train first!")
@@ -366,9 +375,16 @@ if __name__ == "__main__":
             draws = load_draws()
             model, draws = train_model(draws)
     
-            # Step 3 - Save model locally for predict_only use
+            # Step 3 - Save model locally and upload to Supabase
             model.save('lstm_model.h5')
-    
+            with open('lstm_model.h5', 'rb') as f:
+                supabase.storage.from_(MODEL_BUCKET).upload(
+                    path='lstm_model.h5',
+                    file=f,
+                    file_options={"upsert": "true", "content-type": "application/octet-stream"}
+                )
+            print("Model saved to Supabase Storage!")
+             
             # Step 4 - Convert & Upload TF.js
             convert_and_upload_tfjs(model)
     
