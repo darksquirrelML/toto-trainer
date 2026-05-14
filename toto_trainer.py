@@ -363,7 +363,14 @@ if __name__ == "__main__":
             else:
                 numbers, probs = predict_and_save(model, draws)
                 update_status("complete", 100, message=f"✅ Predicted: {numbers}")
+                # Reset predict_only flag
+                supabase.table("training_config").upsert({
+                    "id": 1,
+                    "predict_only": False
+                }).execute()
                 print("=== Prediction Done! ===")
+
+        
         else:
             # Full pipeline: scrape + train + predict
             # Step 1 - Scrape
@@ -397,6 +404,11 @@ if __name__ == "__main__":
                 100,
                 message=f"✅ Done! Predicted: {numbers}"
             )
+            # Reset predict_only flag
+            supabase.table("training_config").upsert({
+                "id": 1,
+                "predict_only": False
+            }).execute()
             print("=== All Done! ===")
     
     except Exception as e:
