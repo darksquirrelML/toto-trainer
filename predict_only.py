@@ -5,12 +5,26 @@ from supabase import create_client
 import tensorflow as tf
 from tensorflow import keras
 
+
 # ─── Config ───────────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 MODEL_BUCKET = "models"
+
+# Load epochs from training_config
+def get_epochs():
+    try:
+        response = supabase.table("training_config") \
+            .select("epochs") \
+            .eq("id", 1) \
+            .single() \
+            .execute()
+        return response.data.get("epochs", 100)
+    except:
+        return 100
+
 
 # ─── Update status ────────────────────────────────────────────────────────────
 def update_status(status, progress=0, message=''):
@@ -101,7 +115,7 @@ def predict_and_save(model, draws):
         "probabilities": json.dumps(probabilities),
         "draw_date": draws[-1]['draw_date'],
         "window_size": window,
-        "epochs": 0
+        "epochs": get_epochs()
     }).execute()
 
     print(f"Predicted: {numbers}")
