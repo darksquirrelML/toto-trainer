@@ -114,7 +114,7 @@ def predict_and_save(model, draws):
 
     latest_draw = draws[-1]
     print(f"Latest draw used: #{latest_draw['draw_no']} — {latest_draw['draw_date']}")
-    
+
     supabase.table("predictions").upsert({
         "id": 1,
         "numbers": json.dumps(numbers),
@@ -122,7 +122,8 @@ def predict_and_save(model, draws):
         "draw_date": latest_draw['draw_date'],
         "draw_no": latest_draw['draw_no'],
         "window_size": window,
-        "epochs": get_epochs()
+        "epochs": get_epochs(),
+        "total_draws": len(draws)
     }).execute()
     print(f"Predicted: {numbers}")
     return numbers, probabilities
