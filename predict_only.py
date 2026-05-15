@@ -132,8 +132,12 @@ def predict_and_save(model, draws):
     latest_draw = draws[-1]
     print(f"Latest draw used: #{latest_draw['draw_no']} — {latest_draw['draw_date']}")
 
+    from datetime import datetime, timezone
+    now_utc = datetime.now(timezone.utc).isoformat()
+    
     supabase.table("predictions").upsert({
         "id": 1,
+        "predicted_at": now_utc,
         "numbers": json.dumps(numbers),
         "probabilities": json.dumps(probabilities),
         "draw_date": latest_draw['draw_date'],
@@ -142,6 +146,7 @@ def predict_and_save(model, draws):
         "epochs": get_epochs(),
         "total_draws": len(draws)
     }).execute()
+    
     print(f"Predicted: {numbers}")
     return numbers, probabilities
 
