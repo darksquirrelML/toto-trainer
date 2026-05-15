@@ -110,13 +110,16 @@ def update_supabase(draws):
 def load_draws():
     update_status("loading", 15, message="Loading draws from Supabase...")
     print("Loading draws from Supabase...")
+    # Load LATEST draws first then reverse for LSTM
     response = supabase.table("toto_results") \
         .select("draw_no, draw_date, winning_no, additional_no") \
-        .order("draw_no", desc=False) \
+        .order("draw_no", desc=True) \
         .limit(NUM_DRAWS) \
         .execute()
-    print(f"Loaded {len(response.data)} draws")
-    return response.data
+    data = list(reversed(response.data))
+    print(f"Loaded {len(data)} draws")
+    print(f"From: {data[0]['draw_date']} to {data[-1]['draw_date']}")
+    return data
 
 # ─── Convert to multihot ──────────────────────────────────────────────────────
 def draws_to_multihot(draws):
