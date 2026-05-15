@@ -40,20 +40,36 @@ def update_status(status, progress=0, message=''):
     except Exception as e:
         print(f"Status update error: {e}")
 
+# ─── Get num_draws from training_config ───────────────────────────────────────
+def get_num_draws():
+    try:
+        config = supabase.table("training_config") \
+            .select("num_draws") \
+            .eq("id", 1) \
+            .single() \
+            .execute()
+        num = config.data.get("num_draws", 1000) if config.data else 1000
+        print(f"num_draws from config: {num}")
+        return num
+    except Exception as e:
+        print(f"Config error: {e}")
+        return 1000
+
 # ─── Load draws ───────────────────────────────────────────────────────────────
-def load_draws(limit=1000):
-    update_status("loading", 20, message="Loading draws from Supabase...")
+def load_draws():
+    num_draws = get_num_draws()
+    update_status("loading", 20, message=f"Loading {num_draws} draws from Supabase...")
     # Load LATEST draws first then reverse for LSTM
     response = supabase.table("toto_results") \
         .select("draw_no, draw_date, winning_no, additional_no") \
         .order("draw_no", desc=True) \
-        .limit(limit) \
+        .limit(num_draws) \
         .execute()
     data = list(reversed(response.data))
     print(f"Loaded {len(data)} draws")
     print(f"From: {data[0]['draw_date']} to {data[-1]['draw_date']}")
     return data
-    
+   
 # ─── Convert to multihot ──────────────────────────────────────────────────────
 def draws_to_multihot(draws):
     X = []
