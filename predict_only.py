@@ -64,6 +64,7 @@ def load_draws():
         .select("draw_no, draw_date, winning_no, additional_no") \
         .order("draw_no", desc=True) \
         .limit(num_draws) \
+        .range(0, num_draws - 1) \
         .execute()
     data = list(reversed(response.data))
     print(f"Loaded {len(data)} draws")
