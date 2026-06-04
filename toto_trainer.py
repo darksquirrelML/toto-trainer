@@ -61,7 +61,11 @@ def update_status(status, progress=0, epoch=0, total=0, loss=0, val_loss=0, mess
 # ─── Save prediction to Supabase ──────────────────────────────────────────────
 def save_prediction(numbers, probabilities, draw_date):
     try:
-        supabase.table("predictions").insert({
+        from datetime import datetime, timezone
+        now_utc = datetime.now(timezone.utc).isoformat()
+        supabase.table("predictions").upsert({
+            "id": 1,
+            "predicted_at": now_utc,
             "numbers": json.dumps(numbers),
             "probabilities": json.dumps(probabilities),
             "draw_date": draw_date,
