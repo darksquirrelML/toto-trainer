@@ -90,7 +90,20 @@ def predict_and_save(model, draws):
     print("Running predictions...")
 
     data_X = draws_to_multihot(draws)
-    window = 15
+    
+    # Read window size from training_config (set by phone app)
+    try:
+        config = supabase.table("training_config") \
+            .select("window_size") \
+            .eq("id", 1) \
+            .single() \
+            .execute()
+        window = config.data.get("window_size", 15) if config.data else 15
+    except Exception as e:
+        print(f"Config error: {e}")
+        window = 15
+    print(f"Using window size: {window}")
+        
     last_seq = data_X[-window:].reshape((1, window, 49)).astype(np.float32)
 
     mc_samples = 100
