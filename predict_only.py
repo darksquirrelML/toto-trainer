@@ -93,7 +93,7 @@ def predict_and_save(model, draws):
     window = 15
     last_seq = data_X[-window:].reshape((1, window, 49)).astype(np.float32)
 
-    mc_samples = 20
+    mc_samples = 100
     probs_accum = np.zeros(49, dtype=np.float64)
     for i in range(mc_samples):
         pred = model(last_seq, training=True).numpy().reshape(-1)
