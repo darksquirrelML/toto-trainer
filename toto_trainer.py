@@ -173,7 +173,7 @@ def train_model(draws):
     start = time.time()
     
     best_val_loss = float('inf')
-    patience = 20
+    patience = 30
     patience_counter = 0
     best_weights = None
     best_epoch = 0
