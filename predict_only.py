@@ -100,32 +100,15 @@ def predict_and_save(model, draws):
         probs_accum += pred
     avg_probs = probs_accum / mc_samples
 
-    recent = draws[-10:]
-    recent_numbers = set()
-    for row in recent:
-        nums = [int(n.strip()) for n in str(row["winning_no"]).split(",")]
-        recent_numbers.update(nums)
-        if row["additional_no"]:
-            recent_numbers.add(int(row["additional_no"]))
-
+    # Pure LSTM — just sort by probability, no bias
     all_sorted = sorted(
         [(i + 1, float(avg_probs[i])) for i in range(49)],
         key=lambda x: x[1], reverse=True
     )
-
-    top7 = []
-    for num, prob in all_sorted:
-        if num in recent_numbers:
-            top7.append((num, prob))
-        if len(top7) == 7:
-            break
-    if len(top7) < 7:
-        for num, prob in all_sorted:
-            if num not in [x[0] for x in top7]:
-                top7.append((num, prob))
-            if len(top7) == 7:
-                break
-
+    
+    # Take top 7 purely by probability
+    top7 = all_sorted[:7]
+        
     numbers = [x[0] for x in top7]
     probabilities = [round(x[1], 4) for x in top7]
 
