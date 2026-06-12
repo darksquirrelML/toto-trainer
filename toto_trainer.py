@@ -168,10 +168,16 @@ def train_model(draws):
         layers.Dense(49, activation='sigmoid')
     ])
     model.compile(optimizer='adam', loss='binary_crossentropy')
-
+    
     val_split = 1.0 - TRAIN_RATIO
     start = time.time()
-
+    
+    best_val_loss = float('inf')
+    patience = 20
+    patience_counter = 0
+    best_weights = None
+    best_epoch = 0
+    
     for ep in range(TRAIN_EPOCHS):
         hist = model.fit(
             sequences, targets,
@@ -185,11 +191,20 @@ def train_model(draws):
         elapsed = time.time() - start
         avg = elapsed / (ep + 1)
         remaining = avg * (TRAIN_EPOCHS - (ep + 1))
-
+    
+        # Early stopping check
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_weights = model.get_weights()
+            best_epoch = ep + 1
+            patience_counter = 0
+        else:
+            patience_counter += 1
+    
         # Map epoch progress to 25-85% range
         progress = 25 + int(((ep + 1) / TRAIN_EPOCHS) * 60)
-        message = f"Epoch {ep+1}/{TRAIN_EPOCHS} — loss: {loss:.4f} — ETA: {remaining:.1f}s"
-
+        message = f"Epoch {ep+1}/{TRAIN_EPOCHS} — loss: {loss:.4f} val: {val_loss:.4f} — ETA: {remaining:.1f}s"
+    
         update_status(
             "training",
             progress,
@@ -200,10 +215,29 @@ def train_model(draws):
             message=message
         )
         print(message)
-
+    
+        # Stop if no improvement for patience epochs
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {ep+1}! Best epoch: {best_epoch}")
+            update_status(
+                "training",
+                85,
+                epoch=ep + 1,
+                total=TRAIN_EPOCHS,
+                loss=loss,
+                val_loss=best_val_loss,
+                message=f"Early stopping at epoch {ep+1}! Best was epoch {best_epoch} (val_loss={best_val_loss:.4f})"
+            )
+            break
+    
+    # Restore best weights
+    if best_weights is not None:
+        model.set_weights(best_weights)
+        print(f"Restored best weights from epoch {best_epoch}")
+    
     print(f"Training complete in {time.time()-start:.1f}s")
     return model, draws
-
+    
 # ─── Upload to Supabase Storage ───────────────────────────────────────────────
 def upload_to_supabase(local_path, storage_path, content_type):
     with open(local_path, 'rb') as f:
