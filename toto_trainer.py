@@ -59,7 +59,7 @@ def update_status(status, progress=0, epoch=0, total=0, loss=0, val_loss=0, mess
         print(f"Status update error: {e}")
 
 # ─── Save prediction to Supabase ──────────────────────────────────────────────
-def save_prediction(numbers, probabilities, draw_date):
+def save_prediction(numbers, probabilities, draw_date, trained_epochs):
     try:
         from datetime import datetime, timezone
         now_utc = datetime.now(timezone.utc).isoformat()
@@ -70,7 +70,7 @@ def save_prediction(numbers, probabilities, draw_date):
             "probabilities": json.dumps(probabilities),
             "draw_date": draw_date,
             "window_size": WINDOW_SIZE,
-            "epochs": TRAIN_EPOCHS
+            "epochs": trained_epochs
         }).execute()
         print(f"Prediction saved: {numbers}")
     except Exception as e:
@@ -216,9 +216,10 @@ def train_model(draws):
             message=message
         )
         print(message)
-    
-        # Stop if no improvement for patience epochs
-        if patience_counter >= patience:
+        
+        # Stop if no improvement for patience epochs (but only after MIN_EPOCHS)
+        MIN_EPOCHS = 100
+        if patience_counter >= patience and (ep + 1) >= MIN_EPOCHS:
             print(f"Early stopping at epoch {ep+1}! Best epoch: {best_epoch}")
             update_status(
                 "training",
@@ -237,7 +238,7 @@ def train_model(draws):
         print(f"Restored best weights from epoch {best_epoch}")
     
     print(f"Training complete in {time.time()-start:.1f}s")
-    return model, draws
+    return model, draws, best_epoch
     
 # ─── Upload to Supabase Storage ───────────────────────────────────────────────
 def upload_to_supabase(local_path, storage_path, content_type):
@@ -317,7 +318,7 @@ def convert_and_upload_tfjs(model):
     print("TF.js model uploaded to Supabase!")
 
 # ─── Predict and save to Supabase ─────────────────────────────────────────────
-def predict_and_save(model, draws):
+def predict_and_save(model, draws, trained_epochs):
     update_status("predicting", 93, message="Running predictions...")
     print("Running predictions...")
 
@@ -347,7 +348,7 @@ def predict_and_save(model, draws):
     probabilities = [round(x[1], 4) for x in top7]
     latest_draw_date = draws[-1]['draw_date']
 
-    save_prediction(numbers, probabilities, latest_draw_date)
+    save_prediction(numbers, probabilities, latest_draw_date, trained_epochs)
     print(f"Predicted: {numbers}")
     return numbers, probabilities
 
@@ -384,11 +385,20 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Model download error: {e}")
                 model = None
-    
+
             if model is None:
                 update_status("error", 0, message="No trained model found. Please train first!")
             else:
-                numbers, probs = predict_and_save(model, draws)
+                # Fetch the best epoch count from the last training run
+                try:
+                    meta_response = supabase.table("model_meta").select("best_epoch").eq("id", 1).single().execute()
+                    trained_epochs = meta_response.data.get("best_epoch", TRAIN_EPOCHS) if meta_response.data else TRAIN_EPOCHS
+                except Exception as e:
+                    print(f"Could not load best_epoch from model_meta: {e}")
+                    trained_epochs = TRAIN_EPOCHS
+
+                numbers, probs = predict_and_save(model, draws, trained_epochs)
+    
                 update_status("complete", 100, message=f"✅ Predicted: {numbers}")
                 # Reset predict_only flag
                 supabase.table("training_config").upsert({
@@ -404,10 +414,16 @@ if __name__ == "__main__":
             draws = scrape_toto_latest()
             if draws:
                 update_supabase(draws)
-    
+                
             # Step 2 - Load & Train
             draws = load_draws()
-            model, draws = train_model(draws)
+            model, draws, best_epoch = train_model(draws)
+
+            # Save best_epoch so predict-only runs can reference it later
+            supabase.table("model_meta").upsert({
+                "id": 1,
+                "best_epoch": best_epoch
+            }).execute()
     
             # Step 3 - Save model locally and upload to Supabase
             model.save('lstm_model.h5')
