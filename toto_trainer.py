@@ -216,9 +216,11 @@ def train_model(draws):
             message=message
         )
         print(message)
-        
+
         # Stop if no improvement for patience epochs (but only after MIN_EPOCHS)
         MIN_EPOCHS = 100
+        if (ep + 1) == MIN_EPOCHS:
+            patience_counter = 0  # reset counter so patience counts fresh from epoch 100
         if patience_counter >= patience and (ep + 1) >= MIN_EPOCHS:
             print(f"Early stopping at epoch {ep+1}! Best epoch: {best_epoch}")
             update_status(
