@@ -130,7 +130,15 @@ def predict_and_save(model, draws):
 
     from datetime import datetime, timezone
     now_utc = datetime.now(timezone.utc).isoformat()
-    
+
+    # Get actual best epoch from last training run
+    try:
+        meta = supabase.table("model_meta").select("best_epoch").eq("id", 1).single().execute()
+        actual_epochs = meta.data.get("best_epoch", get_epochs()) if meta.data else get_epochs()
+    except Exception as e:
+        print(f"Could not load best_epoch: {e}")
+        actual_epochs = get_epochs()
+
     supabase.table("predictions").upsert({
         "id": 1,
         "predicted_at": now_utc,
@@ -139,9 +147,9 @@ def predict_and_save(model, draws):
         "draw_date": latest_draw['draw_date'],
         "draw_no": latest_draw['draw_no'],
         "window_size": window,
-        "epochs": get_epochs(),
+        "epochs": actual_epochs,
         "total_draws": len(draws)
-    }).execute()
+    }).execute()    
     
     print(f"Predicted: {numbers}")
     return numbers, probabilities
