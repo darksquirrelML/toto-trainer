@@ -168,7 +168,8 @@ def train_model(draws):
         layers.Dense(64, activation='relu'),
         layers.Dense(49, activation='sigmoid')
     ])
-    model.compile(optimizer='adam', loss='binary_crossentropy')
+    # model.compile(optimizer='adam', loss='binary_crossentropy')
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005), loss='binary_crossentropy')
     
     val_split = 1.0 - TRAIN_RATIO
     start = time.time()
