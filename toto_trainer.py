@@ -164,7 +164,7 @@ def train_model(draws):
         keras.layers.Input(shape=(window, 49)),
         # layers.LSTM(128, return_sequences=False),
         layers.Bidirectional(layers.LSTM(128, return_sequences=False)),
-        layers.Dropout(0.2),
+        layers.Dropout(0.4),
         layers.Dense(64, activation='relu'),
         layers.Dense(49, activation='sigmoid')
     ])
