@@ -162,10 +162,9 @@ def train_model(draws):
     tf.random.set_seed(SEED)
     model = keras.Sequential([
         keras.layers.Input(shape=(window, 49)),
-        # layers.LSTM(128, return_sequences=False),
-        layers.Bidirectional(layers.LSTM(128, return_sequences=False)),
+        layers.Bidirectional(layers.LSTM(64, return_sequences=False)),
         layers.Dropout(0.4),
-        layers.Dense(64, activation='relu'),
+        layers.Dense(32, activation='relu'),
         layers.Dense(49, activation='sigmoid')
     ])
     # model.compile(optimizer='adam', loss='binary_crossentropy')
