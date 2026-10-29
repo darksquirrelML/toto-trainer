@@ -81,10 +81,7 @@ def scrape_toto_latest():
     update_status("scraping", 0, message="Scraping latest draws...")
     print("Scraping latest draws...")
     url = "https://en.lottolyzer.com/history/singapore/toto?page=1"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-    response = requests.get(url, headers=headers, timeout=15)
+    response = requests.get(url, timeout=15)
     soup = BeautifulSoup(response.text, "html.parser")
     rows = soup.select("table tbody tr")
     draws = []
